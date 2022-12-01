@@ -1,19 +1,16 @@
 import commons.FlywayInitializer;
 import commons.JDBCCredentials;
 import controllers.ReportCreator;
-import dataManagers.DaoInvoicePositions;
-import generated.tables.records.InvoicePositionsRecord;
 import generated.tables.records.OrganizationsRecord;
 import generated.tables.records.ProductsRecord;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import recordForReports.RecordForFifthReport;
-import recordForReports.RecordForFourthReport;
-import recordForReports.RecordForThirdReport;
+import recordForReports.RecordOrganizationProducts;
+import recordForReports.RecordProductPrice;
+import recordForReports.RecordDateProductsAmountPrice;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -21,7 +18,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -33,7 +29,6 @@ public class ReportTests {
 
     @BeforeAll
     public static void creatingReportCreator() {
-        FlywayInitializer.initDB();
         try {
             var connection = DriverManager.getConnection(CREDS.url(), CREDS.login(), CREDS.password());
             rc = new ReportCreator(connection);
@@ -42,8 +37,13 @@ public class ReportTests {
         }
     }
 
+    @BeforeEach
+    public void createDB(){
+        FlywayInitializer.initDB();
+    }
+
     @Test
-    @DisplayName("Выбрать первые 10 поставщиков по количеству поставленного товара")
+    @DisplayName("Р’С‹Р±СЂР°С‚СЊ РїРµСЂРІС‹Рµ 10 РїРѕСЃС‚Р°РІС‰РёРєРѕРІ РїРѕ РєРѕР»РёС‡РµСЃС‚РІСѓ РїРѕСЃС‚Р°РІР»РµРЅРЅРѕРіРѕ С‚РѕРІР°СЂР°")
     void firstTenOrganizations() {
         var testProduct = new ProductsRecord("Jacket  Puma", 1401);
         var listOfOrganizations = new ArrayList<OrganizationsRecord>();
@@ -52,7 +52,7 @@ public class ReportTests {
     }
 
     @Test
-    @DisplayName("Выбрать поставщиков с количеством поставленного товара выше указанного значения.")
+    @DisplayName("Р’С‹Р±СЂР°С‚СЊ РїРѕСЃС‚Р°РІС‰РёРєРѕРІ СЃ РєРѕР»РёС‡РµСЃС‚РІРѕРј РїРѕСЃС‚Р°РІР»РµРЅРЅРѕРіРѕ С‚РѕРІР°СЂР° РІС‹С€Рµ СѓРєР°Р·Р°РЅРЅРѕРіРѕ Р·РЅР°С‡РµРЅРёСЏ.")
     void organizationsWithAmountAndPrice() {
         var hashMapAmountProductCode = new HashMap<Integer, Integer>();
         hashMapAmountProductCode.put(898, 1201);
@@ -67,13 +67,13 @@ public class ReportTests {
     }
 
     @Test
-    @DisplayName("За каждый день для каждого товара рассчитать количество и сумму " +
-            "полученного товара в указанном периоде, посчитать итоги за период")
+    @DisplayName("Р—Р° РєР°Р¶РґС‹Р№ РґРµРЅСЊ РґР»СЏ РєР°Р¶РґРѕРіРѕ С‚РѕРІР°СЂР° СЂР°СЃСЃС‡РёС‚Р°С‚СЊ РєРѕР»РёС‡РµСЃС‚РІРѕ Рё СЃСѓРјРјСѓ " +
+            "РїРѕР»СѓС‡РµРЅРЅРѕРіРѕ С‚РѕРІР°СЂР° РІ СѓРєР°Р·Р°РЅРЅРѕРј РїРµСЂРёРѕРґРµ, РїРѕСЃС‡РёС‚Р°С‚СЊ РёС‚РѕРіРё Р·Р° РїРµСЂРёРѕРґ")
     void sumPerDay() {
-        var listOfEntities = new ArrayList<RecordForThirdReport>();
-        listOfEntities.add(new RecordForThirdReport(LocalDateTime.parse("2022-07-10 12:00", formatter),
+        var listOfEntities = new ArrayList<RecordDateProductsAmountPrice>();
+        listOfEntities.add(new RecordDateProductsAmountPrice(LocalDateTime.parse("2022-07-10 12:00", formatter),
                 "T-shirt Nike", 1201, BigDecimal.valueOf(250), 1499));
-        listOfEntities.add(new RecordForThirdReport(LocalDateTime.parse("2022-07-10 12:00", formatter),
+        listOfEntities.add(new RecordDateProductsAmountPrice(LocalDateTime.parse("2022-07-10 12:00", formatter),
                 "Sneakers Reebok", 1301, BigDecimal.valueOf(20), 17999));
         var queryResult = rc.getSumPerDay(LocalDateTime.parse("2022-07-10 12:00", formatter),
                 LocalDateTime.parse("2022-08-09 16:00", formatter));
@@ -81,27 +81,27 @@ public class ReportTests {
     }
 
     @Test
-    @DisplayName("Рассчитать среднюю цену по каждому товару за период")
+    @DisplayName("Р Р°СЃСЃС‡РёС‚Р°С‚СЊ СЃСЂРµРґРЅСЋСЋ С†РµРЅСѓ РїРѕ РєР°Р¶РґРѕРјСѓ С‚РѕРІР°СЂСѓ Р·Р° РїРµСЂРёРѕРґ")
     void avgByPeriod() {
-        var listOfEntities = new ArrayList<RecordForFourthReport>();
-        listOfEntities.add(new RecordForFourthReport(1201, "T-shirt Nike", 1499.0));
-        listOfEntities.add(new RecordForFourthReport(1301, "Sneakers Reebok", 17999.0));
+        var listOfEntities = new ArrayList<RecordProductPrice>();
+        listOfEntities.add(new RecordProductPrice(1201, "T-shirt Nike", 1499.0));
+        listOfEntities.add(new RecordProductPrice(1301, "Sneakers Reebok", 17999.0));
         var queryResult = rc.averageValueBetween(LocalDateTime.parse("2022-07-10 12:00", formatter),
                 LocalDateTime.parse("2022-08-09 16:00", formatter));
         assertThat(listOfEntities, is(queryResult));
     }
 
     @Test
-    @DisplayName("Вывести список товаров, поставленных организациями за период. Если организация товары не поставляла, " +
-            "то она все равно должна быть отражена в списке.")
+    @DisplayName("Р’С‹РІРµСЃС‚Рё СЃРїРёСЃРѕРє С‚РѕРІР°СЂРѕРІ, РїРѕСЃС‚Р°РІР»РµРЅРЅС‹С… РѕСЂРіР°РЅРёР·Р°С†РёСЏРјРё Р·Р° РїРµСЂРёРѕРґ. Р•СЃР»Рё РѕСЂРіР°РЅРёР·Р°С†РёСЏ С‚РѕРІР°СЂС‹ РЅРµ РїРѕСЃС‚Р°РІР»СЏР»Р°, " +
+            "С‚Рѕ РѕРЅР° РІСЃРµ СЂР°РІРЅРѕ РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РѕС‚СЂР°Р¶РµРЅР° РІ СЃРїРёСЃРєРµ.")
     void listOfProductsByPeriod() {
-        var listOfEntities = new ArrayList<RecordForFifthReport>();
-        listOfEntities.add(new RecordForFifthReport("StreetBeat", 123123, 2222, null, null));
-        listOfEntities.add(new RecordForFifthReport("SportMaster", 234234, 3333, null, null));
-        listOfEntities.add(new RecordForFifthReport("Decathlon", 345345, 4444, "Jacket Reebok", 1400));
-        listOfEntities.add(new RecordForFifthReport("Decathlon", 345345, 4444, "Jacket  Puma", 1401));
-        listOfEntities.add(new RecordForFifthReport("SportTovary", 456456, 5555, "T-shirt Nike", 1201));
-        listOfEntities.add(new RecordForFifthReport("SportTovary", 456456, 5555, "Sneakers Reebok", 1301));
+        var listOfEntities = new ArrayList<RecordOrganizationProducts>();
+        listOfEntities.add(new RecordOrganizationProducts("StreetBeat", 123123, 2222, null, null));
+        listOfEntities.add(new RecordOrganizationProducts("SportMaster", 234234, 3333, null, null));
+        listOfEntities.add(new RecordOrganizationProducts("Decathlon", 345345, 4444, "Jacket Reebok", 1400));
+        listOfEntities.add(new RecordOrganizationProducts("Decathlon", 345345, 4444, "Jacket  Puma", 1401));
+        listOfEntities.add(new RecordOrganizationProducts("SportTovary", 456456, 5555, "T-shirt Nike", 1201));
+        listOfEntities.add(new RecordOrganizationProducts("SportTovary", 456456, 5555, "Sneakers Reebok", 1301));
         var queryResult = rc.getAllProductByPeriod(LocalDateTime.parse("2022-07-10 11:59", formatter),
                 LocalDateTime.parse("2022-08-10 16:01", formatter));
         assertThat(listOfEntities,is(queryResult));

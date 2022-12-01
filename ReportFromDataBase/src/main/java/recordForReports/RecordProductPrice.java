@@ -6,7 +6,7 @@ import lombok.Data;
 
 @AllArgsConstructor
 public @Data
-class RecordForFourthReport {
+class RecordProductPrice {
     private final Integer productCode;
     private final String nameOfProduct;
     private final Double price;

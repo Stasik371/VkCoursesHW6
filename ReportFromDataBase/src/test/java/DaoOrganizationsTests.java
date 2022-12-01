@@ -3,10 +3,7 @@ import commons.FlywayInitializer;
 import commons.JDBCCredentials;
 import dataManagers.DaoOrganizations;
 import generated.tables.records.OrganizationsRecord;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -18,11 +15,10 @@ import static org.hamcrest.Matchers.is;
 public class DaoOrganizationsTests {
     private static DaoOrganizations dao;
     private static final JDBCCredentials CREDS = JDBCCredentials.DEFAULT;
-    private static final OrganizationsRecord testOrganization = new OrganizationsRecord("Nothing", 788887,4545);
+    private static final OrganizationsRecord testOrganization = new OrganizationsRecord("Nothing", 788887, 4545);
 
     @BeforeAll
     public static void creatingDao() {
-        FlywayInitializer.initDB();
         try {
             var connection = DriverManager.getConnection(CREDS.url(), CREDS.login(), CREDS.password());
             dao = new DaoOrganizations(connection);
@@ -30,6 +26,11 @@ public class DaoOrganizationsTests {
             throw new RuntimeException(e);
         }
 
+    }
+
+    @BeforeEach
+    public void createDB() {
+        FlywayInitializer.initDB();
     }
 
     @Test
@@ -49,10 +50,10 @@ public class DaoOrganizationsTests {
     @DisplayName("Checking all method when entities in DataBase")
     void allMethodTest() {
         var listOfOrganizations = new ArrayList<OrganizationsRecord>();
-        listOfOrganizations.add(new OrganizationsRecord("StreetBeat", 123123,2222));
-        listOfOrganizations.add(new OrganizationsRecord("SportMaster", 234234,3333));
-        listOfOrganizations.add(new OrganizationsRecord("Decathlon", 345345,4444));
-        listOfOrganizations.add(new OrganizationsRecord("SportTovary", 456456,5555));
+        listOfOrganizations.add(new OrganizationsRecord("StreetBeat", 123123, 2222));
+        listOfOrganizations.add(new OrganizationsRecord("SportMaster", 234234, 3333));
+        listOfOrganizations.add(new OrganizationsRecord("Decathlon", 345345, 4444));
+        listOfOrganizations.add(new OrganizationsRecord("SportTovary", 456456, 5555));
         assertThat(listOfOrganizations, is(dao.all()));
     }
 

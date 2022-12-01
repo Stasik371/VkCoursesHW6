@@ -3,10 +3,7 @@ import commons.FlywayInitializer;
 import commons.JDBCCredentials;
 import dataManagers.DaoInvoicePositions;
 import generated.tables.records.InvoicePositionsRecord;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -22,13 +19,17 @@ public class DaoInvoicePositionsTests {
 
     @BeforeAll
     public static void creatingDao() {
-        FlywayInitializer.initDB();
         try {
             var connection = DriverManager.getConnection(CREDS.url(), CREDS.login(), CREDS.password());
             dao = new DaoInvoicePositions(connection);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @BeforeEach
+    public void createDB(){
+        FlywayInitializer.initDB();
     }
 
 

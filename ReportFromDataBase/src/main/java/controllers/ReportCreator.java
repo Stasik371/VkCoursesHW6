@@ -6,9 +6,9 @@ import generated.tables.records.ProductsRecord;
 import org.jetbrains.annotations.NotNull;
 import org.jooq.*;
 import org.jooq.impl.DSL;
-import recordForReports.RecordForFifthReport;
-import recordForReports.RecordForFourthReport;
-import recordForReports.RecordForThirdReport;
+import recordForReports.RecordOrganizationProducts;
+import recordForReports.RecordProductPrice;
+import recordForReports.RecordDateProductsAmountPrice;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -18,9 +18,7 @@ import static generated.tables.InvoicePositions.INVOICE_POSITIONS;
 import static generated.tables.Invoices.INVOICES;
 import static generated.tables.Products.PRODUCTS;
 
-import java.sql.Date;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 
 
@@ -61,9 +59,8 @@ public class ReportCreator {
                 .limit(10);
         var listOfOrganization = new ArrayList<OrganizationsRecord>();
         for (var record : result) {
-            listOfOrganization.add(new OrganizationsRecord(record.getValue(ORGANIZATIONS.ORGANIZATIONS_NAME),
-                    record.getValue(ORGANIZATIONS.IND_TAXPAYER_NUM),
-                    record.getValue(ORGANIZATIONS.CHECKING_ACCOUNT)));
+            var bufOrganization=record.into(ORGANIZATIONS);
+            listOfOrganization.add(bufOrganization);
         }
         return listOfOrganization;
     }
@@ -84,10 +81,8 @@ public class ReportCreator {
                     .and(INVOICE_POSITIONS.PRODUCT_CODE.eq(record.getValue()))
                     .fetch();
             for (var recordFromOneQuery : result) {
-                listOfOrganization.add(new OrganizationsRecord(
-                        recordFromOneQuery.getValue(ORGANIZATIONS.ORGANIZATIONS_NAME),
-                        recordFromOneQuery.getValue(ORGANIZATIONS.IND_TAXPAYER_NUM),
-                        recordFromOneQuery.getValue(ORGANIZATIONS.CHECKING_ACCOUNT)));
+                var bufOrganization=recordFromOneQuery.into(ORGANIZATIONS);
+                listOfOrganization.add(bufOrganization);
             }
             listOfOrganization.add(null);
         }
@@ -96,7 +91,7 @@ public class ReportCreator {
 
     //За каждый день для каждого товара рассчитать количество и
     //сумму полученного товара в указанном периоде, посчитать итоги за период
-    public ArrayList<RecordForThirdReport> getSumPerDay(LocalDateTime firstDate, LocalDateTime secondDate) {
+    public ArrayList<RecordDateProductsAmountPrice> getSumPerDay(LocalDateTime firstDate, LocalDateTime secondDate) {
         var result = context
                 .select(INVOICES.DATE_OF_INVOICE, PRODUCTS.NAME_OF_PRODUCT, PRODUCTS.PRODUCT_CODE,
                         DSL.sum(INVOICE_POSITIONS.AMOUNT).as("amount"), INVOICE_POSITIONS.PRICE)
@@ -110,9 +105,9 @@ public class ReportCreator {
                         PRODUCTS.NAME_OF_PRODUCT, INVOICE_POSITIONS.PRICE,
                         PRODUCTS.PRODUCT_CODE, INVOICE_POSITIONS.PRICE)
                 .fetch();
-        var listOfEntitiesInReport = new ArrayList<RecordForThirdReport>();
+        var listOfEntitiesInReport = new ArrayList<RecordDateProductsAmountPrice>();
         for (var record : result) {
-            listOfEntitiesInReport.add(new RecordForThirdReport(
+            listOfEntitiesInReport.add(new RecordDateProductsAmountPrice(
                     record.getValue(INVOICES.DATE_OF_INVOICE),
                     record.getValue(PRODUCTS.NAME_OF_PRODUCT),
                     record.getValue(INVOICE_POSITIONS.PRODUCT_CODE),
@@ -125,7 +120,7 @@ public class ReportCreator {
 
 
     //Рассчитать среднюю цену по каждому товару за период
-    public ArrayList<RecordForFourthReport> averageValueBetween(LocalDateTime firstDate, LocalDateTime secondDate) {
+    public ArrayList<RecordProductPrice> averageValueBetween(LocalDateTime firstDate, LocalDateTime secondDate) {
         var result = context
                 .select(PRODUCTS.PRODUCT_CODE, PRODUCTS.NAME_OF_PRODUCT, DSL.avg(INVOICE_POSITIONS.PRICE).as("price"))
                 .from(INVOICE_POSITIONS)
@@ -136,11 +131,11 @@ public class ReportCreator {
                 .where(INVOICES.DATE_OF_INVOICE.between(firstDate, secondDate))
                 .groupBy(PRODUCTS.PRODUCT_CODE, PRODUCTS.PRODUCT_CODE, PRODUCTS.PRODUCT_CODE)
                 .fetch();
-        var listOfEntities = new ArrayList<RecordForFourthReport>();
+        var listOfEntities = new ArrayList<RecordProductPrice>();
         for (var record : result) {
             var price = (BigDecimal) record.getValue("price");
             var intPrice= price.doubleValue();
-            listOfEntities.add(new RecordForFourthReport(
+            listOfEntities.add(new RecordProductPrice(
                     record.getValue(INVOICE_POSITIONS.PRODUCT_CODE),
                     record.getValue(PRODUCTS.NAME_OF_PRODUCT),
                     intPrice));
@@ -150,24 +145,24 @@ public class ReportCreator {
 
     //Вывести список товаров, поставленных организациями за период.
     //Если организация товары не поставляла, то она все равно должна быть отражена в списке.
-    public ArrayList<RecordForFifthReport> getAllProductByPeriod(LocalDateTime firstDate, LocalDateTime secondDate) {
+    public ArrayList<RecordOrganizationProducts> getAllProductByPeriod(LocalDateTime firstDate, LocalDateTime secondDate) {
         var result = context
                 .select(ORGANIZATIONS.ORGANIZATIONS_NAME, ORGANIZATIONS.IND_TAXPAYER_NUM,
                         ORGANIZATIONS.CHECKING_ACCOUNT, PRODUCTS.NAME_OF_PRODUCT,
                         PRODUCTS.PRODUCT_CODE)
                 .from(PRODUCTS)
-                .join(INVOICE_POSITIONS)
+                .rightJoin(INVOICE_POSITIONS)
                 .on(PRODUCTS.PRODUCT_CODE.eq(INVOICE_POSITIONS.PRODUCT_CODE))
-                .fullOuterJoin(INVOICES)
+                .rightJoin(INVOICES)
                 .on(INVOICES.INVOICE_ID.eq(INVOICE_POSITIONS.INVOICE_ID))
                 .and(INVOICES.DATE_OF_INVOICE.between(firstDate, secondDate))
-                .join(ORGANIZATIONS)
+                .rightJoin(ORGANIZATIONS)
                 .on(ORGANIZATIONS.IND_TAXPAYER_NUM.eq(INVOICES.ORGANIZATION_NUM))
                 .orderBy(ORGANIZATIONS.IND_TAXPAYER_NUM, PRODUCTS.PRODUCT_CODE)
                 .fetch();
-        var listOfRecords = new ArrayList<RecordForFifthReport>();
+        var listOfRecords = new ArrayList<RecordOrganizationProducts>();
         for (var record: result) {
-            listOfRecords.add(new RecordForFifthReport(
+            listOfRecords.add(new RecordOrganizationProducts(
                     record.getValue(ORGANIZATIONS.ORGANIZATIONS_NAME),
                     record.getValue(ORGANIZATIONS.IND_TAXPAYER_NUM),
                     record.getValue(ORGANIZATIONS.CHECKING_ACCOUNT),

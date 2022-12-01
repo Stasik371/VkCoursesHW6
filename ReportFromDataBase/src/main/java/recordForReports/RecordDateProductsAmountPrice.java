@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 public @Data
 @AllArgsConstructor
-class RecordForThirdReport {
+class RecordDateProductsAmountPrice {
     private final LocalDateTime dateOfInvoice;
     private final String productName;
     private final Integer productCode;

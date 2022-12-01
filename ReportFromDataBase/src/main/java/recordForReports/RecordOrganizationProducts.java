@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class RecordForFifthReport {
+public class RecordOrganizationProducts {
     private final String organizationName;
     private final Integer indTaxpayerNum;
     private final Integer checkingAccount;
