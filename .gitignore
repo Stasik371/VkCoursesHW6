@@ -1,0 +1,6 @@
+/jooq-generated/src/
+/.gradle/
+/build/
+/.idea/
+/jooq-generated/build/
+/ReportFromDataBase/build/
